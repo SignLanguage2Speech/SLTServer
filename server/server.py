@@ -15,7 +15,7 @@ class ModelServer:
         self.tts_model = tts_model
         self.initialize_routes()
         self.initialize_sock()
-        self.spoken_language = "english"
+        self.spoken_language = "german"
         self.signed_language_from = "english"
         self.signed_language_to = "english"
     
@@ -38,8 +38,8 @@ class ModelServer:
         def stt(ws): # Speech To Text. Receive .webm bytes (video) -> Send text
             while True:
                 data = ws.receive()
-                out = self.tts_model.inference(data,self.spoken_language)
-                ws.send(out)
+                result = self.tts_model.inference(data,self.spoken_language)
+                ws.send(result)
                 del data
 
     def run(self):
