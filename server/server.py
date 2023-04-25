@@ -39,6 +39,8 @@ class ModelServer:
             while True:
                 data = ws.receive()
                 result = self.tts_model.inference(data,self.spoken_language)
+                if "Copyright WDR 2020" in result:
+                    result = ""
                 ws.send(result)
                 del data
 
