@@ -5,35 +5,41 @@ from signals.video import write_video_tensor_to_mp4, convert_webm_bytes_to_tenso
 
 from flask import Flask
 from flask_sock import Sock
+import pdb
 
 class ModelServer:
-    def __init__(self, model):
+    def __init__(self, slt_model, tts_model):
         self.app = Flask(__name__)
         self.sock = Sock(self.app)
-        self.model = model
+        self.slt_model = slt_model
+        self.tts_model = tts_model
         self.initialize_routes()
         self.initialize_sock()
+        self.spoken_language = "english"
+        self.signed_language_from = "english"
+        self.signed_language_to = "english"
     
     def initialize_routes(self):
-        @self.app.route('/1')
+        @self.app.route('/inference_test')
         def inf1():
             x = list2tensor([1,0,0])
-            return tensor2list(self.model(x))
+            return tensor2list(self.slt_model(x))
     
     def initialize_sock(self):
-        @self.sock.route("/echo")
-        def echo(ws):
-            while True:
-                data = ws.receive()
-                print(data)
-                ws.send(data)
-        @self.sock.route("/inference")
-        def inference(ws):
+        @self.sock.route("/slt")
+        def slt(ws): # Sign Language Translation. Receive .webm bytes (video) -> Send text
             while True:
                 data = ws.receive()
                 video = convert_webm_bytes_to_tensor(data)
                 write_video_tensor_to_mp4(video) # ! FOR TESTING ONLY
                 ws.send(data)
+                del data
+        @self.sock.route("/stt")
+        def stt(ws): # Speech To Text. Receive .webm bytes (video) -> Send text
+            while True:
+                data = ws.receive()
+                out = self.tts_model.inference(data,self.spoken_language)
+                ws.send(out)
                 del data
 
     def run(self):
