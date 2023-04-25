@@ -1,5 +1,7 @@
 from model.utils import list2tensor, tensor2list, videobuffer2tensor
-from model.test import test_write_streamed_video, test_load_webm_from_bytes
+# from model.test import test_write_streamed_video, test_load_webm_from_bytes_into_tensor, test_load_webm_from_bytes
+
+from signals.video import write_video_tensor_to_mp4, convert_webm_bytes_to_tensor
 
 from flask import Flask
 from flask_sock import Sock
@@ -29,11 +31,10 @@ class ModelServer:
         def inference(ws):
             while True:
                 data = ws.receive()
-                # print(data)
-                # tns_data = videobuffer2tensor(data)
-                # test_write_streamed_video(tns_data)
-                test_load_webm_from_bytes(data)
+                video = convert_webm_bytes_to_tensor(data)
+                write_video_tensor_to_mp4(video) # ! FOR TESTING ONLY
                 ws.send(data)
+                del data
 
     def run(self):
         self.app.run(
