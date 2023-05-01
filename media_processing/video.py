@@ -87,36 +87,40 @@ class VideoPipeline:
         self.spatial_upsample = nn.Upsample(size=(self.W_in, self.W_in), scale_factor=None, mode='bilinear', align_corners=None, recompute_scale_factor=None)
 
     def __call__(self, rawvideo, to_file=False):
-        rawvideo = rawvideo.double() # ! convert to double tensor
-        rawvideo = self.reshape(rawvideo,[0,3,1,2])
+        rawvideo = rawvideo.double()
+        rawvideo = self.reshape(rawvideo,[0,3,1,2]) # rearrange order of dimensions to match torch's transformations API
         rawvideo = self.crop(rawvideo)
         rawvideo = self.downsample(rawvideo)
-        if to_file:
+        if to_file: # if we are writing the output to an mp4 file via cv2
             rawvideo = rawvideo.type(torch.uint8)
             dim_order = [0,2,3,1]
-        else:
-            rawvideo = self.normalize(rawvideo)
+        else: # if we are doing SLT inference
+            rawvideo = self.normalize(rawvideo) 
             dim_order = [1,0,2,3] # ! ensure order of dimensions is correct
-        rawvideo = self.reshape(rawvideo,dim_order)
+        rawvideo = self.reshape(rawvideo,dim_order) # rearrange order of dimensions back to match our model
         return rawvideo
     
+    """ Rearrange order of dimensions of video tensor """
     def reshape(self, rawvideo, order):
         assert len(order) == 4
         return rawvideo.permute(*order).contiguous()
     
+    """ Bilinear downsampling (interpolation) for (down-) resizing frames """
     def downsample(self, rawvideo):
         return F.interpolate(rawvideo, size=(self.H_out, self.W_out), scale_factor=None, mode='bilinear', align_corners=False, recompute_scale_factor=None)
 
-    # Center crops (?)
+    """ Center crop to minimal dimension of height and width """
     def crop(self, rawvideo):
         min_spatial_dim = min(self.H_in, self.W_in)
         return TF.center_crop(rawvideo, (min_spatial_dim, min_spatial_dim))
 
+    """ Bilinear upsampling (interpolation) for (up-) resizing frames """
     def upsample(self, rawvideo):
         return self.spatial_upsample(rawvideo)
 
+    """ Max normalization (uint8) to scalar in [0;1] """
     def normalize(self, rawvideo):
-        return rawvideo.div(255) # normalize to [0;1]
+        return rawvideo.div(255)
 
 
 def load_mp4video_from_file(FILE_PATH='output.mp4'):
