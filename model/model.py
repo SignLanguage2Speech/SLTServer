@@ -11,3 +11,23 @@ class ModelWrapper:
         raise NotImplementedError("Implement in child classes")
     def inference(self, input):
         return self.model(input)
+
+class TestModel(ModelWrapper):
+    def _initialize_model(self):
+        f = nn.Sequential(
+            nn.Linear(3,3),
+            nn.ReLU(),
+            nn.Linear(3,1),
+        )
+        f.load_state_dict(torch.load(self.model_path))
+        return f
+
+
+if __name__ == '__main__':
+    f = TestModel()
+
+    x = torch.Tensor([1,1,1])
+
+    print(f(x).detach().numpy()[0])
+    # torch.save(f.state_dict(), PATH)
+

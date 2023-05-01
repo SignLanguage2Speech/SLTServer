@@ -6,19 +6,19 @@ from mediaprocessing.audio import webm_to_waveform
 
 from flask import Flask
 from flask_sock import Sock
-import pdb
+import json
 
 class ModelServer:
-    def __init__(self, slt_model, tts_model):
+    def __init__(self, slt_model, stt_model):
         self.app = Flask(__name__)
         self.sock = Sock(self.app)
         self.slt_model = slt_model
-        self.tts_model = tts_model
+        self.stt_model = stt_model
         self.initialize_routes()
         self.initialize_sock()
-        self.spoken_language = "german"
-        self.signed_language_from = "english"
-        self.signed_language_to = "english"
+        self.spoken_language = "US"
+        self.signed_language_from = "US"
+        self.signed_language_to = "US"
     
     def initialize_routes(self):
         @self.app.route('/inference_test')
@@ -41,9 +41,20 @@ class ModelServer:
             while True:
                 data = ws.receive()
                 waveform = webm_to_waveform(data)
-                result = self.tts_model(waveform, self.spoken_language)
+                result = self.stt_model(waveform, self.spoken_language, self.signed_language_to)
+                print(self.spoken_language, self.signed_language_to)
                 ws.send(result)
                 del waveform
+                del data
+
+        @self.sock.route("/change_language")
+        def change_language(ws): # Change language
+            while True:
+                data = ws.receive()
+                languages: dict = json.loads(data)
+                self.spoken_language = languages.get("spl", "US")
+                self.signed_language_from = languages.get("silf", "US")
+                self.signed_language_to = languages.get("silt", "US")
                 del data
 
     def run(self):
