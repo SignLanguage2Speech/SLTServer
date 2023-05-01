@@ -28,7 +28,6 @@ def write_video_tensor_to_mp4(ipt_tns, w=640, h=480, fps=30, OUT_FILE_PATH='outp
             proc.stderr.close()
         proc.wait()
     
-    del ipt_tns
     LOG.log_dbg(dbg_str,mode=2)
 
 def write_single_frame_to_png(video_array, frame_idx=0):
@@ -40,7 +39,7 @@ def write_single_frame_to_png(video_array, frame_idx=0):
     LOG.log_dbg(dbg_str,mode=2)
 
 
-def convert_webm_bytes_to_tensor(webm_bytes):
+def webm_bytes_to_tensor(webm_bytes):
     # Use ffmpeg to convert WEBM video into rawvideo format (one pixel, one byte (per color channel))
     # Then load this into a torch tensor
     dbg_str = "Loading WEBM byte stream into torch Tensor"

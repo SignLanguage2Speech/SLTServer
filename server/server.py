@@ -1,7 +1,8 @@
 from model.utils import list2tensor, tensor2list, videobuffer2tensor
 # from model.test import test_write_streamed_video, test_load_webm_from_bytes_into_tensor, test_load_webm_from_bytes
 
-from signals.video import write_video_tensor_to_mp4, convert_webm_bytes_to_tensor
+from mediaprocessing.video import write_video_tensor_to_mp4, webm_bytes_to_tensor
+from mediaprocessing.audio import webm_to_waveform
 
 from flask import Flask
 from flask_sock import Sock
@@ -30,16 +31,19 @@ class ModelServer:
         def slt(ws): # Sign Language Translation. Receive .webm bytes (video) -> Send text
             while True:
                 data = ws.receive()
-                video = convert_webm_bytes_to_tensor(data)
+                video = webm_bytes_to_tensor(data)
                 write_video_tensor_to_mp4(video) # ! FOR TESTING ONLY
                 ws.send(data)
+                del video
                 del data
         @self.sock.route("/stt")
         def stt(ws): # Speech To Text. Receive .webm bytes (video) -> Send text
             while True:
                 data = ws.receive()
-                result = self.tts_model.inference(data,self.spoken_language)
+                waveform = webm_to_waveform(data)
+                result = self.tts_model(waveform, self.spoken_language)
                 ws.send(result)
+                del waveform
                 del data
 
     def run(self):

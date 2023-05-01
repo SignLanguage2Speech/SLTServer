@@ -6,7 +6,7 @@ class Logger:
             0: "INFO",
             1: "STARTING",
             2: "FINISHED",
-            -1:"ERROR",
+           -1: "ERROR",
         }
 
     @staticmethod
@@ -14,7 +14,7 @@ class Logger:
         Logger.debug = debug
 
     @staticmethod
-    def log_dbg(self, *args, mode=0):
+    def log_dbg(*args, mode=0):
         if Logger.debug:
             print(f"DEBUG @ {Logger.mode2flag[mode]} ::", *args)
 
