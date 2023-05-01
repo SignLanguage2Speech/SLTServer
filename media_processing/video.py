@@ -86,23 +86,23 @@ class VideoPipeline:
         self.W_out = self.H_out = 224
         self.spatial_upsample = nn.Upsample(size=(self.W_in, self.W_in), scale_factor=None, mode='bilinear', align_corners=None, recompute_scale_factor=None)
 
-    def __call__(self, rawvideo, mode=None):
+    def __call__(self, rawvideo, to_file=False):
         rawvideo = rawvideo.double() # ! convert to double tensor
-        rawvideo = self.reshape_0312(rawvideo)
+        rawvideo = self.reshape(rawvideo,[0,3,1,2])
         rawvideo = self.crop(rawvideo)
         rawvideo = self.downsample(rawvideo)
-        if mode == 'to_file':
-            rawvideo = self.reshape_0231(rawvideo)
+        if to_file:
             rawvideo = rawvideo.type(torch.uint8)
+            dim_order = [0,2,3,1]
         else:
             rawvideo = self.normalize(rawvideo)
+            dim_order = [1,0,2,3] # ! ensure order of dimensions is correct
+        rawvideo = self.reshape(rawvideo,dim_order)
         return rawvideo
     
-    def reshape_0312(self, rawvideo):
-        return rawvideo.permute(0,3,1,2).contiguous() # ! is permutation correct and is contiguous needed?
-    
-    def reshape_0231(self, rawvideo):
-        return rawvideo.permute(0,2,3,1).contiguous() # ! is permutation correct and is contiguous needed?
+    def reshape(self, rawvideo, order):
+        assert len(order) == 4
+        return rawvideo.permute(*order).contiguous()
     
     def downsample(self, rawvideo):
         return F.interpolate(rawvideo, size=(self.H_out, self.W_out), scale_factor=None, mode='bilinear', align_corners=False, recompute_scale_factor=None)
@@ -119,8 +119,8 @@ class VideoPipeline:
         return rawvideo.div(255) # normalize to [0;1]
 
 
-def test_load_vid():
-    cap = cv2.VideoCapture('output.mp4')
+def load_mp4video_from_file(FILE_PATH='output.mp4'):
+    cap = cv2.VideoCapture(FILE_PATH)
     frames = []
     while cap.isOpened():
         ret,frame = cap.read()
@@ -138,6 +138,6 @@ if __name__ == '__main__':
             pass
     import cv2, numpy as np
     pipe = VideoPipeline()
-    vid = test_load_vid()
-    processed_vid = pipe(vid, mode='to_file')
+    vid = load_mp4video_from_file()
+    processed_vid = pipe(vid, to_file=True)
     write_video_tensor_to_mp4(processed_vid, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4')

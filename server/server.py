@@ -33,9 +33,9 @@ class ModelServer:
             while True:
                 data = ws.receive()
                 video = webm_bytes_to_tensor(data)
-                processed_video = self.pipe(video, mode='to_file')
-                write_video_tensor_to_mp4(video) # ! FOR TESTING ONLY
-                write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY
+                processed_video = self.pipe(video, to_file=True)
+                write_video_tensor_to_mp4(video)                                                                       # ! FOR TESTING ONLY => write unaltered video
+                write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY => write processed video
                 ws.send(data)
                 del video
                 del data
