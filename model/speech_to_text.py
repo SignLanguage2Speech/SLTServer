@@ -1,7 +1,5 @@
 import whisper
 from deep_translator import GoogleTranslator
-import numpy as np
-import ffmpeg
 from model.model import ModelWrapper
 
 class SpeechToText(ModelWrapper):
