@@ -1,8 +1,8 @@
 from model.utils import list2tensor, tensor2list, videobuffer2tensor
 # from model.test import test_write_streamed_video, test_load_webm_from_bytes_into_tensor, test_load_webm_from_bytes
 
-from mediaprocessing.video import write_video_tensor_to_mp4, webm_bytes_to_tensor
-from mediaprocessing.audio import webm_to_waveform
+from media_processing.video import write_video_tensor_to_mp4, webm_bytes_to_tensor, VideoPipeline
+from media_processing.audio import webm_to_waveform
 
 from flask import Flask
 from flask_sock import Sock
@@ -12,8 +12,9 @@ class ModelServer:
     def __init__(self, slt_model, stt_model):
         self.app = Flask(__name__)
         self.sock = Sock(self.app)
-        self.slt_model = slt_model
-        self.stt_model = stt_model
+        self.pipe = VideoPipeline()
+        self.slt_model = slt_model # Sign Language Translation
+        self.stt_model = stt_model # Speech To Text
         self.initialize_routes()
         self.initialize_sock()
         self.spoken_language = "US"
@@ -32,7 +33,9 @@ class ModelServer:
             while True:
                 data = ws.receive()
                 video = webm_bytes_to_tensor(data)
+                processed_video = self.pipe(video, mode='to_file')
                 write_video_tensor_to_mp4(video) # ! FOR TESTING ONLY
+                write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY
                 ws.send(data)
                 del video
                 del data
