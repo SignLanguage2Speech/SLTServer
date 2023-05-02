@@ -60,6 +60,13 @@ class ModelServer:
                 self.signed_language_to = languages.get("silt", "US")
                 del data
 
+        @self.sock.route("/check")
+        def check(ws): # Check connection
+            while True:
+                data = ws.receive()
+                ws.send(200)
+                del data
+
     def run(self):
         self.app.run(
             host="localhost",
