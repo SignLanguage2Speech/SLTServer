@@ -1,10 +1,10 @@
-import whisper
+from whisper import load_model
 from deep_translator import GoogleTranslator
 from model.model import ModelWrapper
 
 class SpeechToText(ModelWrapper):
     def __init__(self):
-        self.model = whisper.load_model("base")
+        self.model = load_model("base")
         self.langauges = {
             "US": "en",
             "UK": "en",

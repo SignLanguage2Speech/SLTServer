@@ -1,0 +1,3 @@
+[submodule "model/Sign2Text"]
+	path = model/Sign2Text
+	url = https://github.com/SignLanguage2Speech/Sign2Text
