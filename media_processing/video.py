@@ -80,14 +80,14 @@ def webm_bytes_to_tensor(webm_bytes):
         return video_tensor
 
 class VideoPipeline:
-    def __init__(self):
-        self.W_in = 640
-        self.H_in = 480
-        self.W_out = self.H_out = 224
+    def __init__(self, W_in = 640, H_in = 480, WH_out = 224):
+        self.W_in = W_in
+        self.H_in = H_in
+        self.W_out = self.H_out = WH_out
         self.spatial_upsample = nn.Upsample(size=(self.W_in, self.W_in), scale_factor=None, mode='bilinear', align_corners=None, recompute_scale_factor=None)
 
-    def __call__(self, rawvideo, to_file=False):
-        rawvideo = rawvideo.double()
+    def __call__(self, rawvideo, output_length=False, to_file=False):
+        rawvideo = rawvideo.float()
         rawvideo = self.reshape(rawvideo,[0,3,1,2]) # rearrange order of dimensions to match torch's transformations API
         rawvideo = self.crop(rawvideo)
         rawvideo = self.downsample(rawvideo)
@@ -96,9 +96,14 @@ class VideoPipeline:
             dim_order = [0,2,3,1]
         else: # if we are doing SLT inference
             rawvideo = self.normalize(rawvideo) 
-            dim_order = [1,0,2,3] # ! ensure order of dimensions is correct
+            # ! ensure order of dimensions is correct 
+            dim_order = [1,0,2,3] # ! works when loading from file
         rawvideo = self.reshape(rawvideo,dim_order) # rearrange order of dimensions back to match our model
-        return rawvideo
+        if not output_length:
+            return rawvideo  
+        else: 
+            output_length = torch.Tensor(rawvideo.shape[0])
+            return (rawvideo, output_length)
     
     """ Rearrange order of dimensions of video tensor """
     def reshape(self, rawvideo, order):

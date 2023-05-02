@@ -1,7 +1,9 @@
 import torch
-    
+from time import time
+
 class Logger:
     debug = False
+    measure_time = False
     mode2flag = {
             0: "INFO",
             1: "STARTING",
@@ -10,13 +12,19 @@ class Logger:
         }
 
     @staticmethod
-    def toggle_dbg(debug=True):
-        Logger.debug = debug
-
-    @staticmethod
-    def log_dbg(*args, mode=0):
+    def log_dbg(*args, mode=0, prev_start_time=None):
         if Logger.debug:
-            print(f"DEBUG @ {Logger.mode2flag[mode]} ::", *args)
+            start_time = None
+            msg_string = f"DEBUG @ {Logger.mode2flag[mode]}"
+            if Logger.measure_time:
+                if mode==1:
+                    start_time = time()
+                elif mode==2 and prev_start_time is not None:
+                    end_time = time()
+                    execution_time = end_time - prev_start_time
+                    msg_string += f" after {execution_time:.2f} s"
+            print(msg_string, "::", *args)
+            return start_time
 
 def list2tensor(lst):
     return torch.Tensor(lst)

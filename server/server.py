@@ -1,6 +1,3 @@
-from model.utils import list2tensor, tensor2list, videobuffer2tensor
-# from model.test import test_write_streamed_video, test_load_webm_from_bytes_into_tensor, test_load_webm_from_bytes
-
 from media_processing.video import write_video_tensor_to_mp4, webm_bytes_to_tensor, VideoPipeline
 from media_processing.audio import webm_to_waveform
 
@@ -22,10 +19,9 @@ class ModelServer:
         self.signed_language_to = "US"
     
     def initialize_routes(self):
-        @self.app.route('/inference_test')
+        @self.app.route('/hello')
         def inf1():
-            x = list2tensor([1,0,0])
-            return tensor2list(self.slt_model(x))
+            return "Hallo!"
     
     def initialize_sock(self):
         @self.sock.route("/slt")
@@ -33,10 +29,13 @@ class ModelServer:
             while True:
                 data = ws.receive()
                 video = webm_bytes_to_tensor(data)
-                processed_video = self.pipe(video, to_file=True)
-                write_video_tensor_to_mp4(video)                                                                       # ! FOR TESTING ONLY => write unaltered video
-                write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY => write processed video
-                ws.send(data)
+                # processed_video, num_frames = self.pipe(video, to_file=True, output_length=True)
+                processed_video, num_frames = self.pipe(video, to_file=False, output_length=True)
+                # write_video_tensor_to_mp4(video)                                                                       # ! FOR TESTING ONLY => write unaltered video
+                # write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY => write processed video
+                y = self.slt_model(processed_video, num_frames)
+                print(y)
+                ws.send(y)
                 del video
                 del data
         @self.sock.route("/stt")

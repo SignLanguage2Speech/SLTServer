@@ -9,5 +9,5 @@ class ModelWrapper:
         return self.inference(*input)
     def _initialize_model(self):
         raise NotImplementedError("Implement in child classes")
-    def inference(self, input):
-        return self.model(input)
+    def inference(self, *input):
+        return self.model(*input)
