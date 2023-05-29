@@ -1,3 +1,4 @@
+import torch
 from model.model import ModelWrapper
 # from model import ModelWrapper
 from model.Sign2Text.utils.load_model_from_checkpoint import load_model_from_checkpoint
@@ -6,8 +7,8 @@ from model.utils import Logger as LOG
 
 
 class SignToText(ModelWrapper):
-    def __init__(self):
-        self.model = load_model_from_checkpoint('model/Sign2Text_test.pt', train=False)
+    def __init__(self, device='cpu'):
+        self.model = load_model_from_checkpoint('model/Sign2Text_test.pt', train=False, device=device)
         self.langauges = {
             "US": "en",
             "UK": "en",
@@ -17,6 +18,15 @@ class SignToText(ModelWrapper):
         rawvideo_input = rawvideo_input.unsqueeze(0) 
         dbg_str = "SLT Inference"
         start_time = LOG.log_dbg(dbg_str, mode=1)
+        # with torch.profiler.profile(
+        #     schedule=torch.profiler.schedule(
+        #         wait=2,
+        #         warmup=2,
+        #         active=6,
+        #         repeat=1),
+        #     on_trace_ready=tensorboard_trace_handler,
+        #     with_stack=True
+        # ) as profiler:
         output = self.model.predict(rawvideo_input,input_length)
         LOG.log_dbg(dbg_str, mode=2, prev_start_time=start_time)
         return output

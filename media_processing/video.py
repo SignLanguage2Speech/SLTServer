@@ -4,6 +4,8 @@ import torchvision.transforms.functional as TF
 import torch.nn as nn
 import torch.nn.functional as F
 from cv2 import imwrite, cvtColor, COLOR_RGB2BGR
+import sys
+
 
 if __name__ != '__main__':
     from model.utils import Logger as LOG
@@ -43,7 +45,7 @@ def write_single_frame_to_png(video_array, frame_idx=0):
     LOG.log_dbg(dbg_str,mode=2)
 
 
-def webm_bytes_to_tensor(webm_bytes):
+def webm_bytes_to_tensor(webm_bytes, device='cpu'):
     # Use ffmpeg to convert WEBM video into rawvideo format (one pixel, one byte (per color channel))
     # Then load this into a torch tensor
     dbg_str = "Loading WEBM byte stream into torch Tensor"
@@ -63,9 +65,11 @@ def webm_bytes_to_tensor(webm_bytes):
         process.stdout.close()
         process.wait()
         video_tensor = torch.frombuffer(stdout, dtype=torch.uint8)
+        video_tensor = video_tensor.to(torch.device(device))
 
         LOG.log_dbg("Length of buffer: ", len(stdout)%(10**6), "·10^6")
         LOG.log_dbg("video_tensor shape (bytes->uint8): ", video_tensor.shape[0]%(10**6), "·10^6")
+        LOG.log_dbg("Tensor is on device =", video_tensor.device)
         
         # Reshape the video array to the correct shape
         height = 480
@@ -95,14 +99,14 @@ class VideoPipeline:
             rawvideo = rawvideo.type(torch.uint8)
             dim_order = [0,2,3,1]
         else: # if we are doing SLT inference
-            rawvideo = self.normalize(rawvideo) 
-            # ! ensure order of dimensions is correct 
+            rawvideo = self.normalize(rawvideo)
             dim_order = [1,0,2,3] # ! works when loading from file
         rawvideo = self.reshape(rawvideo,dim_order) # rearrange order of dimensions back to match our model
         if not output_length:
             return rawvideo  
         else: 
-            output_length = torch.Tensor(rawvideo.shape[0])
+            output_length = torch.zeros(1)
+            output_length[0] = rawvideo.shape[1]
             return (rawvideo, output_length)
     
     """ Rearrange order of dimensions of video tensor """
@@ -129,6 +133,7 @@ class VideoPipeline:
 
 
 def load_mp4video_from_file(FILE_PATH='output.mp4'):
+    import cv2, numpy as np
     cap = cv2.VideoCapture(FILE_PATH)
     frames = []
     while cap.isOpened():

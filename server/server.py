@@ -9,7 +9,7 @@ class ModelServer:
     def __init__(self, slt_model, stt_model):
         self.app = Flask(__name__)
         self.sock = Sock(self.app)
-        self.pipe = VideoPipeline()
+        self.pipeline = VideoPipeline()
         self.slt_model = slt_model # Sign Language Translation
         self.stt_model = stt_model # Speech To Text
         self.initialize_routes()
@@ -28,16 +28,16 @@ class ModelServer:
         def slt(ws): # Sign Language Translation. Receive .webm bytes (video) -> Send text
             while True:
                 data = ws.receive()
-                video = webm_bytes_to_tensor(data)
-                # processed_video, num_frames = self.pipe(video, to_file=True, output_length=True)
-                processed_video, num_frames = self.pipe(video, to_file=False, output_length=True)
+                video = webm_bytes_to_tensor(data, device='cpu')
+                del data
+                # processed_video, num_frames = self.pipeline(video, to_file=True, output_length=True)
+                video, num_frames = self.pipeline(video, to_file=False, output_length=True)
                 # write_video_tensor_to_mp4(video)                                                                       # ! FOR TESTING ONLY => write unaltered video
                 # write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY => write processed video
-                y = self.slt_model(processed_video, num_frames)
-                print(y)
-                ws.send(y)
+                y = self.slt_model(video, num_frames)
                 del video
-                del data
+                print("prediction", y)
+                ws.send(y[0])
         @self.sock.route("/stt")
         def stt(ws): # Speech To Text. Receive .webm bytes (video) -> Send text
             while True:
