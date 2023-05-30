@@ -75,6 +75,8 @@ def webm_bytes_to_tensor(webm_bytes, device='cpu'):
         # Reshape the video array to the correct shape
         height = 480
         width = 640
+        # height = 240
+        # width = 320
         channels = 3
         num_frames = video_tensor.shape[0] // (height * width * channels)
         video_tensor = video_tensor.reshape((num_frames, height, width, channels))

@@ -5,6 +5,7 @@ from deep_translator import GoogleTranslator
 from flask import Flask
 from flask_sock import Sock
 import json
+import pdb
 
 class ModelServer:
     def __init__(self, slt_model, stt_model):
@@ -18,6 +19,7 @@ class ModelServer:
         self.spoken_language = "US"
         self.signed_language_from = "US"
         self.signed_language_to = "US"
+        self.performance = 3
         self.google_langauges = {
             "US": "en",
             "UK": "en",
@@ -38,10 +40,11 @@ class ModelServer:
                 del data
                 # processed_video, num_frames = self.pipeline(video, to_file=True, output_length=True)
                 video, num_frames = self.pipeline(video, to_file=False, output_length=True)
+                pdb.set_trace()
                 # write_video_tensor_to_mp4(video)                                                                       # ! FOR TESTING ONLY => write unaltered video
                 # write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY => write processed video
                 y = self.slt_model(video, num_frames)[0]
-                if self.spoken_language != self.signed_language_to:
+                if self.spoken_language != self.signed_language_from:
                     y = GoogleTranslator(source=self.google_langauges[self.signed_language_from], target=self.google_langauges[self.spoken_language]).translate(y)
                 del video
                 print("prediction", y)
@@ -67,6 +70,14 @@ class ModelServer:
                 self.spoken_language = languages.get("spl", "US")
                 self.signed_language_from = languages.get("silf", "US")
                 self.signed_language_to = languages.get("silt", "US")
+                del data
+
+        @self.sock.route("/set_performance")
+        def set_performance(ws): # Set Performance
+            while True:
+                data = ws.receive()
+                performance: dict = json.loads(data)
+                self.performance = performance["performance"]
                 del data
 
         @self.sock.route("/check")
