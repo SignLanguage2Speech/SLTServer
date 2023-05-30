@@ -1,5 +1,6 @@
 from media_processing.video import write_video_tensor_to_mp4, webm_bytes_to_tensor, VideoPipeline
 from media_processing.audio import webm_to_waveform
+from deep_translator import GoogleTranslator
 
 from flask import Flask
 from flask_sock import Sock
@@ -17,6 +18,11 @@ class ModelServer:
         self.spoken_language = "US"
         self.signed_language_from = "US"
         self.signed_language_to = "US"
+        self.google_langauges = {
+            "US": "en",
+            "UK": "en",
+            "DE": "de",
+            "DK": "da"}
     
     def initialize_routes(self):
         @self.app.route('/hello')
@@ -34,18 +40,22 @@ class ModelServer:
                 video, num_frames = self.pipeline(video, to_file=False, output_length=True)
                 # write_video_tensor_to_mp4(video)                                                                       # ! FOR TESTING ONLY => write unaltered video
                 # write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY => write processed video
-                y = self.slt_model(video, num_frames)
+                y = self.slt_model(video, num_frames)[0]
+                if self.spoken_language != self.signed_language_to:
+                    y = GoogleTranslator(source=self.google_langauges[self.signed_language_from], target=self.google_langauges[self.spoken_language]).translate(y)
                 del video
                 print("prediction", y)
-                ws.send(y[0])
+                ws.send(y)
         @self.sock.route("/stt")
         def stt(ws): # Speech To Text. Receive .webm bytes (video) -> Send text
             while True:
                 data = ws.receive()
                 waveform = webm_to_waveform(data)
-                result = self.stt_model(waveform, self.spoken_language, self.signed_language_to)
+                y = self.stt_model(waveform, self.spoken_language)
+                if self.spoken_language != self.signed_language_to:
+                    y = GoogleTranslator(source=self.google_langauges[self.spoken_language], target=self.google_langauges[self.signed_language_to]).translate(y)
                 print(self.spoken_language, self.signed_language_to)
-                ws.send(result)
+                ws.send(y)
                 del waveform
                 del data
 

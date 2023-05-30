@@ -53,10 +53,11 @@ def webm_bytes_to_tensor(webm_bytes, device='cpu'):
     command = ['ffmpeg', 
         '-f', 'webm',          # ? webm because this is what Flutter Web uses
         # '-pix_fmt', 'yuv420p', # ? webm uses this pixel format
-        '-i', 'pipe:0', 
+        '-i', 'pipe:0',
+        '-fps_mode', 'passthrough', 
         '-f', 'rawvideo', 
         '-pix_fmt', 'rgb24',
-        '-']
+        '-',]
     with subprocess.Popen(command, 
                           stdin=subprocess.PIPE, 
                           stdout=subprocess.PIPE) as process:

@@ -1,5 +1,4 @@
 from whisper import load_model
-from deep_translator import GoogleTranslator
 from model.model import ModelWrapper
 
 class SpeechToText(ModelWrapper):
@@ -10,12 +9,10 @@ class SpeechToText(ModelWrapper):
             "UK": "en",
             "DE": "de",
             "DK": "da"}
-    def inference(self, waveform_input, language_from, language_to):
+    def inference(self, waveform_input, language_from):
         transcription = self.model.transcribe(
             waveform_input, 
             language=self.langauges[language_from], 
             patience=2, 
             beam_size=5)["text"]
-        if language_from == language_to:
-            return transcription
-        return GoogleTranslator(source=self.langauges[language_from], target=self.langauges[language_to]).translate(transcription)
+        return transcription

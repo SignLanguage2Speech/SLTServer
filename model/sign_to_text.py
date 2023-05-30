@@ -1,14 +1,18 @@
 import torch
 from model.model import ModelWrapper
 # from model import ModelWrapper
-from model.Sign2Text.utils.load_model_from_checkpoint import load_model_from_checkpoint
+from model.utils import load_s2t_model
 import cv2, numpy as np
 from model.utils import Logger as LOG
-
+import os
 
 class SignToText(ModelWrapper):
     def __init__(self, device='cpu'):
-        self.model = load_model_from_checkpoint('model/Sign2Text_test.pt', train=False, device=device)
+        self.model = load_s2t_model(
+            'model/model_checkpoint/S2T_model_checkpoint.pt', 
+            'model/model_checkpoint/final_model/', 
+            os.path.join(os.getcwd(), 'model/data'), 
+            device=device)
         self.langauges = {
             "US": "en",
             "UK": "en",
