@@ -9,8 +9,8 @@ import os
 class SignToText(ModelWrapper):
     def __init__(self, device='cpu'):
         self.model = load_s2t_model(
-            'model/model_checkpoint/S2T_model_checkpoint_intermediate.pt', 
-            'model/model_checkpoint/final_model/', 
+            'model/s2t_model_epoch49.pt', 
+            'model/final_model_mBART/', 
             os.path.join(os.getcwd(), 'model/data'), 
             device=device)
         self.langauges = {

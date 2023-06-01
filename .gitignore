@@ -161,6 +161,9 @@ cython_debug/
 #.idea/
 
 *.pt
+*.bin
 *.csv
 *checkpoint*
 *__pycache__*
+final_model_mBART/*
+final_model_mBART

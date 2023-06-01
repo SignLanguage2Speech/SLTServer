@@ -40,7 +40,7 @@ class ModelServer:
                 del data
                 # processed_video, num_frames = self.pipeline(video, to_file=True, output_length=True)
                 video, num_frames = self.pipeline(video, to_file=False, output_length=True)
-                pdb.set_trace()
+                # pdb.set_trace()
                 # write_video_tensor_to_mp4(video)                                                                       # ! FOR TESTING ONLY => write unaltered video
                 # write_video_tensor_to_mp4(processed_video, w=224, h=224, fps=30, OUT_FILE_PATH='processed_output.mp4') # ! FOR TESTING ONLY => write processed video
                 y = self.slt_model(video, num_frames)[0]
@@ -90,6 +90,6 @@ class ModelServer:
     def run(self):
         self.app.run(
             host="localhost",
-            port='6969'
+            port='8080'
         )
     
