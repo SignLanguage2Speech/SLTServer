@@ -49,4 +49,6 @@ def load_s2t_model(s2t_checkpoint_path, mbart_model_path, vocab_path, device):
     model.load_state_dict(checkpoint['model_state_dict'])
     model.requires_grad_(False)
     model.eval()
+    for param in model.parameters():
+        param.grad = None
     return model.to(device)

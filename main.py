@@ -3,15 +3,27 @@ from model.utils import Logger as LOG
 from model.speech_to_text import SpeechToText
 from model.sign_to_text import SignToText
 
+import torch
+
 # from model.sign_to_text import main
 
-if __name__ == '__main__':
-    # main()
+# from gunicorn import serve
+
+
+def app():
+    NUM_THREADS = 14
+    torch.set_num_threads(NUM_THREADS)
     LOG.debug = True
     LOG.measure_time = True
     slt_model = SignToText(device='cpu')
     tts_model = SpeechToText()
     model_server = ModelServer(slt_model,tts_model)
+    
+    LOG.log_dbg("Model Server.", mode=1)
+    return model_server.app
+
+if __name__ == '__main__':
+    model_server = app()
     model_server.run()
 
     # from media_processing.video import load_mp4video_from_file
