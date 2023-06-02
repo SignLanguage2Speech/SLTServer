@@ -167,3 +167,5 @@ cython_debug/
 *__pycache__*
 final_model_mBART/*
 final_model_mBART
+
+*.mp4

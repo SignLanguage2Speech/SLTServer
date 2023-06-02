@@ -1,19 +1,57 @@
 import torch
-from time import time
+from time import time, perf_counter, process_time
 from model.Sign2Text.Sign2Text.Sign2Text import Sign2Text
 from model.Sign2Text.configs.Sign2Text_config import Sign2Text_cfg
 from model.Sign2Text.configs.VisualEncoderConfig import cfg as VisualEncoder_cfg
 import os
 
+from datetime import datetime
+import pandas as pd
+
 class Logger:
     debug = False
     measure_time = False
+    measure_perf = False
     mode2flag = {
             0: "INFO",
             1: "STARTING",
             2: "FINISHED",
            -1: "ERROR",
         }
+    """ 
+    Input Dims: only relevant when a tensor is passed.
+    """
+    perf_metrics = pd.DataFrame(columns=['Function Name', 'Variation', 'Input Dims', 'time', 'perf_counter', 'process_time'])
+
+    def add_to_perf_metrics(func_name, *args, variation=None, _input=None, _time=None, _perf_counter=None, _process_time=None, **kwargs):
+        assert not (_time is None or _perf_counter is None or _process_time == None)
+        new_row = pd.DataFrame([{'Function Name': func_name, 
+                                  'Variation': variation, 
+                                  'Input Dims': _input, 
+                                  'time': _time, 
+                                  'perf_counter': _perf_counter, 
+                                  'process_time': _process_time}])
+
+        Logger.perf_metrics = pd.concat([Logger.perf_metrics, new_row], ignore_index=True)
+    
+    def save_perf_metrics(folder_name=None):
+        dt_string = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+        folder_name = folder_name if folder_name is not None else "perf_metrics"
+        file_path = os.path.join(os.getcwd(),f"./experiment-data/{folder_name}/perf_metrics_{dt_string}.csv")
+        Logger.perf_metrics.to_csv(file_path)
+
+    def reset_perf_metrics():
+        Logger.save_perf_metrics(folder_name="perf_metrics_backups")
+        Logger.perf_metrics = Logger.perf_metrics.drop(Logger.perf_metrics.index)
+    
+    def load_perf_metrics(file_name, folder_name=None):
+        assert Logger.perf_metrics.empty, "perf_metrics not empty, handle first!"
+        folder_name = folder_name if folder_name is not None else "perf_metrics"
+        file_name = f"{file_name}.csv" if file_name[-4:] != ".csv" else file_name
+        file_path = os.path.join(os.getcwd(),f"./experiment-data/{folder_name}/{file_name}")
+        Logger.perf_metrics = pd.read_csv(file_path)
+
+
 
     @staticmethod
     def log_dbg(*args, mode=0, prev_start_time=None):
@@ -26,9 +64,29 @@ class Logger:
                 elif mode==2 and prev_start_time is not None:
                     end_time = time()
                     execution_time = end_time - prev_start_time
-                    msg_string += f" after {execution_time:.2f} s"
+                    msg_string += f" time(): {execution_time:.2f} s"
             print(msg_string, "::", *args)
             return start_time
+        
+    def log_perf(*args, mode=1, variation=None, _input=None, prev_start_time=None, prev_perf=None, prev_proc=None):
+        if Logger.measure_perf:
+            start_time = start_perf_time = start_process_time = None
+            msg_string = f"Perf @ {Logger.mode2flag[mode]}"
+            if mode==1:
+                start_time = time()
+                start_perf_time = perf_counter()
+                start_process_time = process_time()
+            elif mode==2 and prev_start_time is not None:
+                end_time = time()
+                end_perf_time = perf_counter()
+                end_process_time = process_time()
+                execution_time = end_time - prev_start_time
+                perf_delta = end_perf_time - prev_perf
+                process_time_delta = end_process_time - prev_proc
+                msg_string += f" [time: {execution_time:.9f} s]" + f" [perf_counter: {perf_delta:.9f} s]" + f" [process_time: {process_time_delta:.9f} s]"
+                Logger.add_to_perf_metrics(*args, variation=variation, _input=_input, _time=execution_time, _perf_counter=perf_delta, _process_time=process_time_delta)
+        print(msg_string, "::", *args)
+        return start_time, start_perf_time, start_process_time
 
 def list2tensor(lst):
     return torch.Tensor(lst)
