@@ -8,42 +8,80 @@ import os
 from datetime import datetime
 import pandas as pd
 
+cyan = '\033[96m'
+red = '\033[91m'
+ylw = '\033[93m'
+grn = '\033[92m'
+blk = '\033[0m'
+
+kws_to_extract = ["variation", "_input", "test_suite_ID", "repetition_ID"]
+""" Wrapper function for monitoring performance. Uses a Pandas DataFrame as a simple database. """
+def monitor_perf(func, *args, **kwargs):
+    Logger.perf_rep_counter += 1
+    extra_kwargs = {}
+    for kw in kws_to_extract:
+        extra_kwarg = kwargs.get(kw, None)
+        if extra_kwarg is not None:
+            del kwargs[kw]
+        extra_kwargs[kw] = extra_kwarg
+        
+    start_time, perf_time, proc_time = Logger.log_perf(func.__name__, mode=1, **extra_kwargs)
+    res = func(*args, **kwargs)
+    Logger.log_perf(func.__name__, mode=2, prev_start_time=start_time, prev_perf=perf_time, prev_proc=proc_time, **extra_kwargs)
+    return res
+
+
+
 class Logger:
     debug = False
     measure_time = False
     measure_perf = False
+    perf_rep_counter = 0
     mode2flag = {
             0: "INFO",
             1: "STARTING",
             2: "FINISHED",
            -1: "ERROR",
         }
+    
     """ 
-    Input Dims: only relevant when a tensor is passed.
+    Test Suite/Repetition IDs:  Certain tests are grouped - this is to identify which group they were part of.
+    Function Name:  Automatically retrieved function/method name
+    Variation:      Varying different parameters, such as e.g. temporal downsampling, beam_width, etc.
+    Input Dims:     Only relevant when a tensor is passed to the monitored function.
+    time:           Time delta as measured by Pythons time.time() function.
+    perf_counter:   Time delta as measured by Pythons time.perf_counter() function.
+    process_time:   Time delta as measured by Pythons time.process_time() function.
     """
-    perf_metrics = pd.DataFrame(columns=['Function Name', 'Variation', 'Input Dims', 'time', 'perf_counter', 'process_time'])
-
-    def add_to_perf_metrics(func_name, *args, variation=None, _input=None, _time=None, _perf_counter=None, _process_time=None, **kwargs):
+    perf_metrics = pd.DataFrame(columns=['Function Name', 'Variation', 'Input Dims', 'time', 'perf_counter', 'process_time', 'Test Suite ID', 'Repetition ID'])
+    
+    @staticmethod
+    def add_to_perf_metrics(func_name, *args, test_suite_ID=None, repetition_ID=None, variation=None, _input=None, _time=None, _perf_counter=None, _process_time=None, **kwargs):
         assert not (_time is None or _perf_counter is None or _process_time == None)
         new_row = pd.DataFrame([{'Function Name': func_name, 
                                   'Variation': variation, 
                                   'Input Dims': _input, 
                                   'time': _time, 
                                   'perf_counter': _perf_counter, 
-                                  'process_time': _process_time}])
+                                  'process_time': _process_time,
+                                  'Repetition ID': repetition_ID if repetition_ID is not None else "None",
+                                  'Test Suite ID': test_suite_ID if test_suite_ID is not None else "None"}])
 
         Logger.perf_metrics = pd.concat([Logger.perf_metrics, new_row], ignore_index=True)
     
+    @staticmethod
     def save_perf_metrics(folder_name=None):
         dt_string = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
         folder_name = folder_name if folder_name is not None else "perf_metrics"
         file_path = os.path.join(os.getcwd(),f"./experiment-data/{folder_name}/perf_metrics_{dt_string}.csv")
         Logger.perf_metrics.to_csv(file_path)
 
+    @staticmethod   
     def reset_perf_metrics():
-        Logger.save_perf_metrics(folder_name="perf_metrics_backups")
+        Logger.perfmon_step()
         Logger.perf_metrics = Logger.perf_metrics.drop(Logger.perf_metrics.index)
     
+    @staticmethod
     def load_perf_metrics(file_name, folder_name=None):
         assert Logger.perf_metrics.empty, "perf_metrics not empty, handle first!"
         folder_name = folder_name if folder_name is not None else "perf_metrics"
@@ -51,7 +89,10 @@ class Logger:
         file_path = os.path.join(os.getcwd(),f"./experiment-data/{folder_name}/{file_name}")
         Logger.perf_metrics = pd.read_csv(file_path)
 
-
+    @staticmethod
+    def perfmon_step():
+        Logger.save_perf_metrics(folder_name="backups")
+        Logger.perf_rep_counter = 0
 
     @staticmethod
     def log_dbg(*args, mode=0, prev_start_time=None):
@@ -68,10 +109,10 @@ class Logger:
             print(msg_string, "::", *args)
             return start_time
         
-    def log_perf(*args, mode=1, variation=None, _input=None, prev_start_time=None, prev_perf=None, prev_proc=None):
+    def log_perf(*args, mode=1, repetition_ID=None, test_suite_ID=None, variation=None, _input=None, prev_start_time=None, prev_perf=None, prev_proc=None):
         if Logger.measure_perf:
             start_time = start_perf_time = start_process_time = None
-            msg_string = f"Perf @ {Logger.mode2flag[mode]}"
+            msg_string = f"{cyan}[{Logger.perf_rep_counter}]{blk} Perf @ {Logger.mode2flag[mode]}"
             if mode==1:
                 start_time = time()
                 start_perf_time = perf_counter()
@@ -84,7 +125,7 @@ class Logger:
                 perf_delta = end_perf_time - prev_perf
                 process_time_delta = end_process_time - prev_proc
                 msg_string += f" [time: {execution_time:.9f} s]" + f" [perf_counter: {perf_delta:.9f} s]" + f" [process_time: {process_time_delta:.9f} s]"
-                Logger.add_to_perf_metrics(*args, variation=variation, _input=_input, _time=execution_time, _perf_counter=perf_delta, _process_time=process_time_delta)
+                Logger.add_to_perf_metrics(*args, test_suite_ID=test_suite_ID, repetition_ID=repetition_ID, variation=variation, _input=_input, _time=execution_time, _perf_counter=perf_delta, _process_time=process_time_delta)
         print(msg_string, "::", *args)
         return start_time, start_perf_time, start_process_time
 
