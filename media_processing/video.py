@@ -10,6 +10,24 @@ import sys
 if __name__ != '__main__':
     from model.utils import Logger as LOG
 
+def write_webm_bytes_to_file(ipt_bytes, OUT_FILE_PATH='output.webm'):
+    dbg_str = f"Writing webm bytes to {OUT_FILE_PATH}"
+    LOG.log_dbg(dbg_str,mode=1)
+    with open(OUT_FILE_PATH, "wb") as f:
+        f.write(ipt_bytes)
+        f.close()
+    LOG.log_dbg(dbg_str,mode=2)
+
+def read_webm_bytes_from_file(FILE_PATH='output.webm'):
+    dbg_str = f"Reading webm bytes from {FILE_PATH}"
+    LOG.log_dbg(dbg_str,mode=1)
+    webm = None
+    with open(FILE_PATH, "rb") as f:
+        webm = f.read()
+        f.close()
+    LOG.log_dbg(dbg_str,mode=2)
+    return webm
+
 def write_video_tensor_to_mp4(ipt_tns, w=640, h=480, fps=30, OUT_FILE_PATH='output.mp4'):
     dbg_str = f"Writing video Tensor to {OUT_FILE_PATH}"
     LOG.log_dbg(dbg_str,mode=1)
