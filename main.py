@@ -20,8 +20,12 @@ def app():
     model_server = ModelServer(slt_model,tts_model)
     
     LOG.log_dbg("Model Server.", mode=1)
-    # return model_server.app
-    return model_server
+    if __name__ == '__main__':
+        return model_server
+    else:
+        return model_server.app
+
+
 
 if __name__ == '__main__':
     model_server = app()

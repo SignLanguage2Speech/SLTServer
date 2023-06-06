@@ -188,7 +188,6 @@ class VideoPipeline:
 
 
 def load_mp4video_from_file(FILE_PATH='output.mp4'):
-    import cv2, numpy as np
     cap = cv2.VideoCapture(FILE_PATH)
     frames = []
     while cap.isOpened():

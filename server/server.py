@@ -15,7 +15,7 @@ class ModelServer:
         self.app = Flask(__name__)
         self.sock = Sock(self.app)
         self.pipeline = VideoPipeline(k_t=k_t)
-        # self.slt_model = slt_model # Sign Language Translation
+        self.slt_model = slt_model # Sign Language Translation
         self.stt_model = stt_model # Speech To Text
         self.initialize_routes()
         self.initialize_sock()
