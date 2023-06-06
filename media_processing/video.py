@@ -63,6 +63,32 @@ def write_single_frame_to_png(video_array, frame_idx=0):
     LOG.log_dbg(dbg_str,mode=2)
 
 
+def get_video_dims_from_webm_bytes(webm_bytes):
+    command = ['ffprobe',
+           '-v', 'error',
+           '-select_streams', 'v:0',
+           '-show_entries', 'stream=width,height',
+           '-of', 'default=nw=1:nk=1',
+           '-i', 'pipe:0']
+
+    # Execute the FFmpeg command
+    # result = subprocess.run(command, capture_output=True, text=True)
+    with subprocess.Popen(command, 
+                          stdin=subprocess.PIPE, 
+                          stdout=subprocess.PIPE,) as process:
+        stdout, _ = process.communicate(input=webm_bytes)
+        process.stdin.close()
+        process.stdout.close()
+        process.wait()
+
+        # Parse the output to extract width and height values
+        output_lines = stdout.decode('utf-8').strip().split('\n')
+        width = int(output_lines[0])
+        height = int(output_lines[1])
+
+        # Print the extracted width and height values
+        return width, height
+
 def webm_bytes_to_tensor(webm_bytes, device='cpu', width=640, height=480):
     # Use ffmpeg to convert WEBM video into rawvideo format (one pixel, one byte (per color channel))
     # Then load this into a torch tensor
@@ -70,7 +96,6 @@ def webm_bytes_to_tensor(webm_bytes, device='cpu', width=640, height=480):
     LOG.log_dbg(dbg_str, mode=1)
     command = ['ffmpeg', 
         '-f', 'webm',          # ? webm because this is what Flutter Web uses
-        # '-pix_fmt', 'yuv420p', # ? webm uses this pixel format
         '-i', 'pipe:0',
         '-fps_mode', 'passthrough', 
         '-f', 'rawvideo', 
@@ -128,7 +153,7 @@ class VideoPipeline:
         self.H_in = H_in
         self.W_out = self.H_out = WH_out
         self.k_t = k_t # temporal downsampling factor
-        self.spatial_upsample = nn.Upsample(size=(self.W_in, self.W_in), scale_factor=None, mode='bilinear', align_corners=None, recompute_scale_factor=None)
+        # self.spatial_upsample = nn.Upsample(size=(self.W_in, self.W_in), scale_factor=None, mode='bilinear', align_corners=None, recompute_scale_factor=None)
 
     def __call__(self, rawvideo, output_length=False, to_file=False):
         rawvideo = rawvideo.float()
@@ -178,9 +203,9 @@ class VideoPipeline:
         min_spatial_dim = min(self.H_in, self.W_in)
         return TF.center_crop(rawvideo, (min_spatial_dim, min_spatial_dim))
 
-    """ Bilinear upsampling (interpolation) for (up-) resizing frames """
-    def upsample(self, rawvideo):
-        return self.spatial_upsample(rawvideo)
+    # """ Bilinear upsampling (interpolation) for (up-) resizing frames """
+    # def upsample(self, rawvideo):
+    #     return self.spatial_upsample(rawvideo)
 
     """ Max normalization (uint8) to scalar in [0;1] """
     def normalize(self, rawvideo):

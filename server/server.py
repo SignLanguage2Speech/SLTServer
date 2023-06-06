@@ -1,4 +1,4 @@
-from media_processing.video import write_video_tensor_to_mp4, write_webm_bytes_to_file, webm_bytes_to_tensor, VideoPipeline
+from media_processing.video import write_video_tensor_to_mp4, write_webm_bytes_to_file, webm_bytes_to_tensor, get_video_dims_from_webm_bytes, VideoPipeline
 from media_processing.audio import webm_to_waveform
 from deep_translator import GoogleTranslator
 
@@ -42,12 +42,11 @@ class ModelServer:
                 data = ws.receive()
                 # write_webm_bytes_to_file(data, OUT_FILE_PATH=f"./experiment-data/experiment_speech_vids/speech{i}.webm")
                 # i+=1
-                video = webm_bytes_to_tensor(data, device='cpu')
+                width, height = get_video_dims_from_webm_bytes(data)
+                self.pipeline.W_in, self.pipeline.H_in = width, height
+                video = webm_bytes_to_tensor(data, device='cpu', width=width, height=height)
                 del data
-                # processed_video, num_frames = self.pipeline(video, to_file=True, output_length=True)
-                # write_video_tensor_to_mp4(video)
                 
-                # y = "No output"
                 video, num_frames = self.pipeline(video, to_file=False, output_length=True)
                 y = self.slt_model(video, num_frames)[0]
                 if self.spoken_language != self.signed_language_from:
